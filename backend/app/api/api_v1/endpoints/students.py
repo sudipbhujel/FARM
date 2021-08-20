@@ -1,12 +1,11 @@
 from typing import List
 
-from fastapi import APIRouter, Body, HTTPException, status
+from app.db.db import db
+from app.models.student import Student
+from fastapi import APIRouter, Body, HTTPException, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from pymongo.errors import WriteError
-
-from app.db.db import db
-from app.models.student import Student
 
 router = APIRouter()
 
@@ -65,6 +64,6 @@ async def delete_student(id: str):
     delete_result = await db["students"].delete_one({"_id": id})
 
     if delete_result.deleted_count == 1:
-        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     raise HTTPException(status_code=404, detail=f"Student {id} not found")
