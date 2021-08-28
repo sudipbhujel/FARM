@@ -1,5 +1,7 @@
+from datetime import datetime
 from typing import Optional
 
+import orjson
 from bson import ObjectId
 from pydantic import BaseModel, EmailStr, Field
 
@@ -20,6 +22,11 @@ class PyObjectId(ObjectId):
         field_schema.update(type="string")
 
 
+def orjson_dumps(v, *, default):
+    # orjson.dumps returns bytes, to match standard json.dumps we need to decode
+    return orjson.dumps(v, default=default).decode()
+
+
 class Student(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     name: Optional[str] = Field(None)
@@ -31,6 +38,8 @@ class Student(BaseModel):
         allow_population_by_field_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
+        json_loads = orjson.loads
+        json_dumps = orjson_dumps
         schema_extra = {
             "example": {
                 "name": "Jane Doe",
@@ -41,11 +50,17 @@ class Student(BaseModel):
         }
 
 
+class StudentInDB(Student):
+    created_at: Optional[datetime] = Field(None)
+    updated_at: Optional[datetime] = Field(None)
+
+
 class UpdateStudent(BaseModel):
     name: Optional[str]
     email: Optional[EmailStr]
     course: Optional[str]
     gpa: Optional[float]
+    updated_at: datetime = Field(datetime.utcnow())
 
     class Config:
         arbitrary_types_allowed = True
