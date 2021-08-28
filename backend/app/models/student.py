@@ -1,5 +1,5 @@
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timezone
+from typing import List, Optional
 
 import orjson
 from bson import ObjectId
@@ -29,7 +29,7 @@ def orjson_dumps(v, *, default):
 
 class Student(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    name: Optional[str] = Field(None)
+    name: str = Field(...)
     email: EmailStr = Field(...)
     course: Optional[str] = Field(None)
     gpa: float = Field(..., le=4.0)
@@ -60,7 +60,7 @@ class UpdateStudent(BaseModel):
     email: Optional[EmailStr]
     course: Optional[str]
     gpa: Optional[float]
-    updated_at: datetime = Field(datetime.utcnow())
+    updated_at: Optional[datetime] = Field(None)
 
     class Config:
         arbitrary_types_allowed = True
@@ -73,3 +73,7 @@ class UpdateStudent(BaseModel):
                 "gpa": "3.0",
             }
         }
+
+
+class StudentOut(Student):
+    updated_at: Optional[datetime]

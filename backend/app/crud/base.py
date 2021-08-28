@@ -14,17 +14,72 @@ class CRUDBase():
     async def get(self, id: str) -> Optional[ModelType]:
         return await db[self.collection].find_one({"_id": id})
 
-    async def get_multi(
-        self, skip: int = 0, limit: int = 100
-    ) -> List[ModelType]:
+    async def get_multi(self, commons: dict) -> List[ModelType]:
+        pipeline = []
+        match_stage = {}
+        if commons["filter"] is not None:
+            if "search" in commons["filter"].keys():
+                match_stage = {
+                    "$text": {
+                        "$search": commons["filter"].pop("search")
+                    },
+                    **commons["filter"]
+                }
+            else:
+                match_stage = {**commons["filter"]}
+
+        pipeline.append({"$match": match_stage})
+
+        # sort stage
+        def conver_to_dict(lst: list):
+            res_dict = {lst[i]: 1 if lst[i+1] ==
+                        "ASC" else -1 for i in range(0, len(lst), 2)}
+            return res_dict
+
+        pipeline.append({"$sort": conver_to_dict(commons["sort"])})
+
+        # add fields stage
+        add_fields_stage = {"$addFields": {"id": "$_id"}}
+
+        # unset stage
+        unset_stage = {
+            "$unset": ["created_at"],
+        }
+
+        # facet stage
+        facet_stage = {
+            "$facet": {
+                "data": [
+                    {"$skip": commons["range"][0]},
+                    {"$limit": commons["range"][1]},
+                    add_fields_stage,
+                    unset_stage
+                ],
+                "total": [{"$count": "total"}]
+            }
+        }
+
+        pipeline.append(facet_stage)
+
+        pipeline.append({
+            '$addFields': {
+                'total': {
+                    '$cond': [
+                        {
+                            '$size': '$total'
+                        }, {
+                            '$first': '$total.total'
+                        }, 0
+                    ]
+                }
+            }
+        })
+
         docs = []
-        pipeline = [
-            {"$skip": skip},
-            {"$limit": limit}
-        ]
+
         async for doc in db[self.collection].aggregate(pipeline):
             docs.append(doc)
-        return docs
+        return docs[0]
 
     async def create(self, body: dict) -> ModelType:
         now = datetime.utcnow()

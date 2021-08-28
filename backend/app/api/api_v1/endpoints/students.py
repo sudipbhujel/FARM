@@ -1,15 +1,30 @@
-from typing import List
+import ast
+from typing import List, Optional
 
 from app import crud
-from app.models.student import Student, StudentInDB, UpdateStudent
+from app.models.student import Student, StudentInDB, StudentOut, UpdateStudent
 from fastapi import APIRouter, Body, HTTPException, Response, status
 from fastapi.encoders import jsonable_encoder
+from fastapi.param_functions import Depends
 from pymongo.errors import WriteError
 
 router = APIRouter()
 
 
-@router.post("/", response_description="Add new student", response_model=Student)
+async def common_parameters(
+    sort: str = "['updated_at', 'DESC']",
+    range: str = "[0, 24]",
+    filter: Optional[str] = None
+) -> dict:
+    common = {"sort": eval(sort), "range": eval(range)}
+    if filter is not None:
+        common["filter"] = ast.literal_eval(filter)
+    else:
+        common["filter"] = filter
+    return common
+
+
+@router.post("/", response_description="Add new student", response_model=Student, status_code=201)
 async def create_student(student: StudentInDB = Body(...)):
     student = jsonable_encoder(student)
     try:
@@ -22,11 +37,12 @@ async def create_student(student: StudentInDB = Body(...)):
 
 
 @router.get(
-    "/", response_description="List all students", response_model=List[Student]
+    "/", response_description="List all students", response_model=List[StudentOut]
 )
-async def list_students(skip: int = 0, limit: int = 100):
-    students = await crud.student.get_multi(skip, limit)
-    return students
+async def list_students(response: Response, commons: dict = Depends(common_parameters)):
+    students = await crud.student.get_multi(commons)
+    response.headers["Content-Range"] = f"students {commons['range'][0]}-{commons['range'][1] if commons['range'][1] < students['total'] else students['total'] }/{students['total']}"
+    return students["data"]
 
 
 @router.get(
@@ -39,7 +55,7 @@ async def show_student(id: str):
     raise HTTPException(status_code=404, detail=f"Student {id} not found")
 
 
-@router.put("/{id}", response_description="Update a student", response_model=Student)
+@router.put("/{id}", response_description="Update a student", response_model=UpdateStudent)
 async def update_student(id: str, student: UpdateStudent = Body(...)):
     student = {k: v for k, v in student.dict().items() if v is not None}
 
