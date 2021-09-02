@@ -1,10 +1,6 @@
-from collections.abc import Iterable
 import time
 
-from fastapi import FastAPI, Request, status
-from fastapi.encoders import jsonable_encoder
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.api_v1.api import api_router

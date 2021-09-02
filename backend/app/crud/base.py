@@ -87,7 +87,6 @@ class CRUDBase():
         body["created_at"] = now
         body["updated_at"] = body["created_at"]
         doc = await conn[database_name][self.collection_name].insert_one(body)
-        print(doc)
         return doc
 
     async def update_by_id(self, conn: AsyncIOMotorClient, id: str, body: dict) -> ModelType:
