@@ -19,10 +19,8 @@ async def common_parameters(
     filter: Optional[str] = None,
 ) -> dict:
     common = {"sort": eval(sort), "range": eval(range)}
-    if filter is not None:
-        common["filter"] = ast.literal_eval(filter)
-    else:
-        common["filter"] = filter
+    common["filter"] = ast.literal_eval(
+        filter) if filter is not None else filter
     return common
 
 
