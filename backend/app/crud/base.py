@@ -3,6 +3,7 @@ from typing import List, Optional, TypeVar
 
 from app.core.config import database_name
 from app.db.mongodb import AsyncIOMotorClient
+from bson import ObjectId
 from pydantic import BaseModel
 
 ModelType = TypeVar("ModelType", bound=BaseModel)
@@ -13,7 +14,7 @@ class CRUDBase():
         self.collection_name = collection_name
 
     async def get_by_id(self, conn: AsyncIOMotorClient, id: str) -> Optional[ModelType]:
-        return await conn[database_name][self.collection_name].find_one({"_id": id})
+        return await conn[database_name][self.collection_name].find_one({"_id": ObjectId(id)})
 
     async def get_multi(self, conn: AsyncIOMotorClient, commons: dict) -> List[ModelType]:
         pipeline = []
@@ -42,19 +43,13 @@ class CRUDBase():
         # add fields stage
         add_fields_stage = {"$addFields": {"id": "$_id"}}
 
-        # unset stage
-        unset_stage = {
-            "$unset": ["created_at"],
-        }
-
         # facet stage
         facet_stage = {
             "$facet": {
                 "data": [
                     {"$skip": commons["range"][0]},
                     {"$limit": commons["range"][1]},
-                    add_fields_stage,
-                    unset_stage
+                    add_fields_stage
                 ],
                 "total": [{"$count": "total"}]
             }
@@ -91,9 +86,9 @@ class CRUDBase():
 
     async def update_by_id(self, conn: AsyncIOMotorClient, id: str, body: dict) -> ModelType:
         body["updated_at"] = datetime.utcnow()
-        doc = await conn[database_name][self.collection_name].update_one({"_id": id}, {"$set": body})
+        doc = await conn[database_name][self.collection_name].update_one({"_id": ObjectId(id)}, {"$set": body})
         return doc
 
     async def delete(self, conn: AsyncIOMotorClient, id: str):
-        doc = await conn[database_name][self.collection_name].delete_one({"_id": id})
+        doc = await conn[database_name][self.collection_name].delete_one({"_id": ObjectId(id)})
         return doc

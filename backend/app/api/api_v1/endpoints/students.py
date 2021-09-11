@@ -2,7 +2,7 @@ import ast
 from typing import List, Optional
 
 from app import crud
-from app.models.student import Student, StudentInDB, StudentOut, UpdateStudent
+from app.models.student import Student, StudentInCreate, StudentInDB, StudentInResponse, StudentInUpdate
 from fastapi import APIRouter, Body, HTTPException, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.param_functions import Depends
@@ -26,8 +26,10 @@ async def common_parameters(
     return common
 
 
-@router.post("/", response_description="Add new student", response_model=Student, status_code=201)
-async def create_student(student: StudentInDB = Body(...), db: AsyncIOMotorClient = Depends(get_database)):
+@router.post("/", response_description="Add new student", response_model=StudentInResponse, status_code=201)
+async def create_student(
+        student: StudentInCreate = Body(...), db: AsyncIOMotorClient = Depends(get_database)
+) -> StudentInDB:
     student = jsonable_encoder(student)
     try:
         new_student = await crud.student.create(db, student)
@@ -39,7 +41,7 @@ async def create_student(student: StudentInDB = Body(...), db: AsyncIOMotorClien
 
 
 @router.get(
-    "/", response_description="List all students", response_model=List[StudentOut]
+    "/", response_description="List all students", response_model=List[StudentInResponse]
 )
 async def list_students(
         response: Response,
@@ -57,8 +59,8 @@ async def show_student(id: str, db: AsyncIOMotorClient = Depends(get_database)):
     return await crud.student.get_student_or_404(db, id)
 
 
-@router.put("/{id}", response_description="Update a student", response_model=UpdateStudent)
-async def update_student(id: str, student: UpdateStudent = Body(...), db: AsyncIOMotorClient = Depends(get_database)):
+@router.put("/{id}", response_description="Update a student", response_model=StudentInResponse)
+async def update_student(id: str, student: StudentInUpdate = Body(...), db: AsyncIOMotorClient = Depends(get_database)):
     student = {k: v for k, v in student.dict().items() if v is not None}
 
     if len(student) >= 1:

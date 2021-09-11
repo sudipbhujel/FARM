@@ -1,37 +1,19 @@
 from datetime import datetime, timezone
 from typing import List, Optional
+from app.models.dbmodel import DBModelMixin, DateTimeModelMixin
+from app.models.rwmode import RWModel
 
 from bson import ObjectId
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import EmailStr, Field
 
 
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid objectid")
-        return ObjectId(v)
-
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
-
-
-class Student(BaseModel):
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+class StudentBase(RWModel):
     name: str = Field(...)
     email: EmailStr = Field(...)
     course: Optional[str] = Field(None)
     gpa: float = Field(..., le=4.0)
 
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
+    class Config(RWModel.Config):
         schema_extra = {
             "example": {
                 "name": "Jane Doe",
@@ -42,21 +24,30 @@ class Student(BaseModel):
         }
 
 
-class StudentInDB(Student):
-    created_at: Optional[datetime] = Field(None)
-    updated_at: Optional[datetime] = Field(None)
+class Student(DateTimeModelMixin, StudentBase):
+    pass
 
 
-class UpdateStudent(BaseModel):
+class StudentInDB(DBModelMixin, Student):
+    pass
+
+
+class StudentInResponse(DBModelMixin, Student):
+    pass
+
+
+class StudentInCreate(StudentBase):
+    pass
+
+
+class StudentInUpdate(RWModel):
     name: Optional[str]
     email: Optional[EmailStr]
     course: Optional[str]
     gpa: Optional[float]
     updated_at: Optional[datetime] = Field(None)
 
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
+    class Config(RWModel.Config):
         schema_extra = {
             "example": {
                 "name": "Jane Doe",
@@ -65,7 +56,3 @@ class UpdateStudent(BaseModel):
                 "gpa": "3.0",
             }
         }
-
-
-class StudentOut(Student):
-    updated_at: Optional[datetime]
