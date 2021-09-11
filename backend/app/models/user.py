@@ -1,6 +1,6 @@
 from typing import Optional
 from app.core.security import get_password_hash, verify_password
-from app.models.dbmodel import DBModelMixin
+from app.models.dbmodel import DBModelMixin, DateTimeModelMixin
 from app.models.rwmode import RWModel
 
 from pydantic import BaseModel
@@ -22,7 +22,7 @@ class UserBase(RWModel):
     disabled: Optional[bool] = False
 
 
-class UserInDB(DBModelMixin, UserBase):
+class UserInDB(DateTimeModelMixin, UserBase):
     hashed_password: str = ""
 
     def check_password(self, password: str):

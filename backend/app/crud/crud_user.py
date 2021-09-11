@@ -4,7 +4,6 @@ from app.core.config import database_name, users_collection_name
 from app.crud.base import CRUDBase
 from app.db.mongodb import AsyncIOMotorClient
 from app.models.user import UserInCreate, UserInDB
-from bson import ObjectId
 from fastapi import HTTPException, status
 
 
