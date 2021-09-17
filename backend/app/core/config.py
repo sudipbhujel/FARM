@@ -33,7 +33,11 @@ class Settings(BaseSettings):
     # Authentication and Authorization
     SECRET_KEY = os.getenv("SECRET_KEY", "Your secret key")
     ALGORITHM = os.getenv("ALGORITHM", "HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(
+        os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+
+    # Model Register
+    MODELS = ["student", "user", "permission", "role"]
 
 
 class Config:
@@ -43,5 +47,6 @@ class Config:
 database_name = os.getenv("MONGO_DB", "fastapi")
 student_collection_name = "students"
 users_collection_name = "users"
+role_collection_name = "roles"
 
 settings = Settings()

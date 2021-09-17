@@ -1,7 +1,7 @@
 from app.core.config import student_collection_name
 from app.crud.base import CRUDBase
 from app.db.mongodb import AsyncIOMotorClient
-from fastapi import HTTPException, Response, status
+from fastapi import HTTPException
 
 
 class CRUDStudent(CRUDBase):

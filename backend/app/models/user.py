@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import List, Optional
+from app import crud
 from app.core.security import get_password_hash, verify_password
 from app.models.dbmodel import DBModelMixin, DateTimeModelMixin
 from app.models.rwmode import RWModel
@@ -22,18 +23,20 @@ class UserBase(RWModel):
     disabled: Optional[bool] = False
 
 
+class User(UserBase):
+    pass
+
+
 class UserInDB(DateTimeModelMixin, UserBase):
     hashed_password: str = ""
+    is_superuser: bool = False
+    roles: List[str] = ["user"]
 
     def check_password(self, password: str):
         return verify_password(password, self.hashed_password)
 
     def change_password(self, password: str):
         self.hashed_password = get_password_hash(password)
-
-
-class User(UserBase):
-    pass
 
 
 class UserInResponse(RWModel):

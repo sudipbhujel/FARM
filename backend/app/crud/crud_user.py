@@ -1,10 +1,12 @@
-from typing import Optional
+from typing import List, Optional
 
-from app.core.config import database_name, users_collection_name
+from app.core.config import database_name, users_collection_name, role_collection_name
+from app.crud import crud_role
 from app.crud.base import CRUDBase
 from app.db.mongodb import AsyncIOMotorClient
 from app.models.user import UserInCreate, UserInDB
 from fastapi import HTTPException, status
+from app.crud.crud_role import role
 
 
 class CRUDUser(CRUDBase):
@@ -34,6 +36,21 @@ class CRUDUser(CRUDBase):
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail="User with this username already exists"
                 )
+
+    async def get_permissions(
+        self, conn: AsyncIOMotorClient, username: str
+    ):
+        user = await self.get_user(conn, username)
+        roles = conn[database_name][role_collection_name].find({
+            "name": {
+                "$in": user.roles
+            }
+        })
+        permissions = []
+        async for role in roles:
+            permissions = permissions + role["permissions"]
+
+        return permissions
 
 
 user = CRUDUser(users_collection_name)

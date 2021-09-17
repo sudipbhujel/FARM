@@ -2,7 +2,9 @@ import ast
 from typing import List, Optional
 
 from app import crud
+from app.core.dependencies import PermissionChecker
 from app.models.student import Student, StudentInCreate, StudentInDB, StudentInResponse, StudentInUpdate
+from app.models.user import User
 from fastapi import APIRouter, Body, HTTPException, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.param_functions import Depends
@@ -11,6 +13,11 @@ from pymongo.errors import WriteError
 from app.db.mongodb import AsyncIOMotorClient, get_database
 
 router = APIRouter()
+
+
+allow_add_student = PermissionChecker("add_student")
+allow_change_student = PermissionChecker("change_student")
+allow_delete_student = PermissionChecker("delete_student")
 
 
 async def common_parameters(
@@ -24,7 +31,13 @@ async def common_parameters(
     return common
 
 
-@router.post("/", response_description="Add new student", response_model=StudentInResponse, status_code=201)
+@router.post("/",
+             response_description="Add new student",
+             response_model=StudentInResponse,
+             status_code=status.HTTP_201_CREATED,
+             dependencies=[
+                 Depends(allow_add_student)]
+             )
 async def create_student(
         student: StudentInCreate = Body(...), db: AsyncIOMotorClient = Depends(get_database)
 ) -> StudentInDB:
@@ -51,13 +64,18 @@ async def list_students(
 
 
 @router.get(
-    "/{id}", response_description="Get a single student", response_model=Student
+    "/{id}", response_description="Get a single student", response_model=StudentInResponse
 )
 async def show_student(id: str, db: AsyncIOMotorClient = Depends(get_database)):
     return await crud.student.get_student_or_404(db, id)
 
 
-@router.put("/{id}", response_description="Update a student", response_model=StudentInResponse)
+@router.put("/{id}",
+            response_description="Update a student",
+            response_model=StudentInResponse,
+            dependencies=[
+                Depends(allow_change_student)]
+            )
 async def update_student(id: str, student: StudentInUpdate = Body(...), db: AsyncIOMotorClient = Depends(get_database)):
     student = {k: v for k, v in student.dict().items() if v is not None}
 
@@ -76,7 +94,10 @@ async def update_student(id: str, student: StudentInUpdate = Body(...), db: Asyn
     raise HTTPException(status_code=404, detail=f"Student {id} not found")
 
 
-@router.delete("/{id}", response_description="Delete a student")
+@router.delete("/{id}",
+               response_description="Delete a student",
+               dependencies=[Depends(allow_delete_student)]
+               )
 async def delete_student(id: str, db: AsyncIOMotorClient = Depends(get_database)):
     delete_result = await crud.student.delete(db, id)
 
